@@ -105,10 +105,11 @@
            (cffi:with-foreign-strings ((%arg0 "sh")
                                        (%arg1 "-c") 
                                        (%arg2 cmd))
-             (cffi:with-foreign-object (%agrs :pointer )
+             (cffi:with-foreign-object (%agrs :pointer 4)
                (setf (cffi:mem-aref %agrs :pointer 0) %arg0
                      (cffi:mem-aref %agrs :pointer 1) %arg1
-                     (cffi:mem-aref %agrs :pointer 2) %arg2)
+                     (cffi:mem-aref %agrs :pointer 2) %arg2
+                     (cffi:mem-aref %agrs :pointer 3) (cffi:null-pointer))
                (isys:execv "/bin/sh" %agrs))))
         (otherwise
          (when pin
