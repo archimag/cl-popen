@@ -76,62 +76,63 @@
            (aref pipe 0))
          (pipe-wr (pipe)
            (aref pipe 1)))
-    (let ((pin (create-pipe stdin))
-          (pout (create-pipe (or stdout
-                                 union-stdout-stderr)))
-          (perr (create-pipe (and (not union-stdout-stderr)
-                                  stderr)))
-          (pid (isys:fork)))
-      (case pid
-        (0 (when stdin
-             (isys:close (pipe-wr pin))
-             (isys:dup2 (pipe-rd pin) +STDIN-FILENO+)
-             (isys:close (pipe-rd pin)))
+    (cffi:with-foreign-strings ((%arg0 "sh")
+                                (%arg1 "-c") 
+                                (%arg2 cmd))
+      (cffi:with-foreign-object (%agrs :pointer 4)
+        (setf (cffi:mem-aref %agrs :pointer 0) %arg0
+              (cffi:mem-aref %agrs :pointer 1) %arg1
+              (cffi:mem-aref %agrs :pointer 2) %arg2
+              (cffi:mem-aref %agrs :pointer 3) (cffi:null-pointer))
 
-           (cond
-             (union-stdout-stderr
-              (isys:close (pipe-rd pout))
-              (isys:dup2 (pipe-wr pout) +STDOUT-FILENO+)
-              (isys:dup2 (pipe-wr pout) +STDERR-FILENO+)
-              (isys:close (pipe-wr pout)))
+        (let ((pin (create-pipe stdin))
+              (pout (create-pipe (or stdout
+                                     union-stdout-stderr)))
+              (perr (create-pipe (and (not union-stdout-stderr)
+                                      stderr)))
+              (pid (isys:fork)))
+          (case pid
+            (0 (when stdin
+                 (isys:close (pipe-wr pin))
+                 (isys:dup2 (pipe-rd pin) +STDIN-FILENO+)
+                 (isys:close (pipe-rd pin)))
 
-             (t (when stdout
+               (cond
+                 (union-stdout-stderr
                   (isys:close (pipe-rd pout))
                   (isys:dup2 (pipe-wr pout) +STDOUT-FILENO+)
+                  (isys:dup2 (pipe-wr pout) +STDERR-FILENO+)
                   (isys:close (pipe-wr pout)))
-                (when stderr
-                  (isys:close (pipe-rd perr))
-                  (isys:dup2 (pipe-wr perr) +STDERR-FILENO+)
-                  (isys:close (pipe-wr perr)))))
 
-           (cffi:with-foreign-strings ((%arg0 "sh")
-                                       (%arg1 "-c") 
-                                       (%arg2 cmd))
-             (cffi:with-foreign-object (%agrs :pointer 4)
-               (setf (cffi:mem-aref %agrs :pointer 0) %arg0
-                     (cffi:mem-aref %agrs :pointer 1) %arg1
-                     (cffi:mem-aref %agrs :pointer 2) %arg2
-                     (cffi:mem-aref %agrs :pointer 3) (cffi:null-pointer))
-               (isys:execv "/bin/sh" %agrs))))
-        (otherwise
-         (when pin
-           (isys:close (pipe-rd pin)))
-         (when pout
-           (isys:close (pipe-wr pout)))
-         (when perr
-           (isys:close (pipe-wr perr)))
+                 (t (when stdout
+                      (isys:close (pipe-rd pout))
+                      (isys:dup2 (pipe-wr pout) +STDOUT-FILENO+)
+                      (isys:close (pipe-wr pout)))
+                    (when stderr
+                      (isys:close (pipe-rd perr))
+                      (isys:dup2 (pipe-wr perr) +STDERR-FILENO+)
+                      (isys:close (pipe-wr perr)))))
+               
+               (isys:execv "/bin/sh" %agrs))
+            (otherwise
+             (when pin
+               (isys:close (pipe-rd pin)))
+             (when pout
+               (isys:close (pipe-wr pout)))
+             (when perr
+               (isys:close (pipe-wr perr)))
 
-         (make-instance 'process
-                        :pid pid
-                        :stdin (if pin
-                                   (make-instance 'iolib.streams:dual-channel-gray-stream
-                                                  :output-fd (pipe-wr pin)))
-                        :stdout (if pout
-                                    (make-instance 'iolib.streams:dual-channel-gray-stream
-                                                   :input-fd (pipe-rd pout)))
-                        :stderr (if perr
-                                    (make-instance 'iolib.streams:dual-channel-gray-stream
-                                                   :input-fd (pipe-rd perr)))))))))
+             (make-instance 'process
+                            :pid pid
+                            :stdin (if pin
+                                       (make-instance 'iolib.streams:dual-channel-gray-stream
+                                                      :output-fd (pipe-wr pin)))
+                            :stdout (if pout
+                                        (make-instance 'iolib.streams:dual-channel-gray-stream
+                                                       :input-fd (pipe-rd pout)))
+                            :stderr (if perr
+                                        (make-instance 'iolib.streams:dual-channel-gray-stream
+                                                       :input-fd (pipe-rd perr)))))))))))
       
 (defmacro with-child-process ((process cmd &key stdin stdout stderr union-stdout-stderr) &body body)
   `(let ((,process (create-process ,cmd
@@ -142,4 +143,3 @@
      (unwind-protect
           (progn ,@body)
        (process-close ,process))))
-               
