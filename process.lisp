@@ -23,20 +23,23 @@
 
 (defclass process ()
   ((pid :initarg :pid :reader process-pid)
-   (stdin :initarg :stdin :reader process-input)
-   (stdout :initarg :stdout :reader process-output)
-   (stderr :initarg :stderr :reader process-error)))
+   (stdin :initarg :stdin :initform nil :reader process-input)
+   (stdout :initarg :stdout :initform nil :reader process-output)
+   (stderr :initarg :stderr :initform nil :reader process-error)))
+
+(defun close-process-stream (stream)
+  (when stream
+    (close stream)
+    (isys:close (or (iolib.streams:output-fd-of stream)
+                    (iolib.streams:input-fd-of stream)))))
 
 (defun process-close (process)
   "Close proccess streams and wait it terminated"
   (with-slots (pid stdin stdout stderr) process
-    (when stdin
-      (isys:close (iolib.streams:output-fd-of stdin)))
-    (when stdout
-      (isys:close (iolib.streams:input-fd-of stdout)))
-    (when stderr
-      (isys:close (iolib.streams:input-fd-of stderr)))
-    (isys:waitpid pid 0)))
+    (close-process-stream stdin)
+    (close-process-stream stdout)
+    (close-process-stream stderr)
+    (ignore-errors (isys:waitpid pid 0))))
 
 (defconstant +WNOHANG+ 1)
 
@@ -56,8 +59,7 @@
 
 (defun process-input-close (process)
   "Close input stream of the child process (send EOF code)"
-  (close (process-input process))
-  (isys:close (iolib.streams:output-fd-of (process-input process)))
+  (close-process-stream (process-input process))
   (setf (slot-value process 'stdin) nil))
 
 (defconstant +STDIN-FILENO+ 0)
