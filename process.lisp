@@ -12,7 +12,7 @@
            #:process-output
            #:process-error
            #:process-close
-           #:process-pool
+           #:process-poll
            #:process-wait
            #:process-kill
            #:process-input-close
@@ -92,7 +92,8 @@
                                       stderr)))
               (pid (isys:fork)))
           (case pid
-            (0 (when stdin
+            (0 
+               (when stdin
                  (isys:close (pipe-wr pin))
                  (isys:dup2 (pipe-rd pin) +STDIN-FILENO+)
                  (isys:close (pipe-rd pin)))
@@ -112,6 +113,7 @@
                       (isys:close (pipe-rd perr))
                       (isys:dup2 (pipe-wr perr) +STDERR-FILENO+)
                       (isys:close (pipe-wr perr)))))
+
                
                (isys:execv "/bin/sh" %agrs))
             (otherwise
