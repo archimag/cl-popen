@@ -15,7 +15,6 @@
            #:process-poll
            #:process-wait
            #:process-kill
-           #:process-input-close
            #:create-process
            #:with-child-process))
 
@@ -27,19 +26,16 @@
    (stdout :initarg :stdout :initform nil :reader process-output)
    (stderr :initarg :stderr :initform nil :reader process-error)))
 
-(defun close-process-stream (stream)
-  (when stream
-    (close stream)
-    (isys:close (or (iolib.streams:output-fd-of stream)
-                    (iolib.streams:input-fd-of stream)))))
-
 (defun process-close (process)
   "Close proccess streams and wait it terminated"
+  (flet ((safe-close (stream)
+           (when (and stream (iolib.streams:fd-of stream))
+             (close stream :abort t))))
   (with-slots (pid stdin stdout stderr) process
-    (close-process-stream stdin)
-    (close-process-stream stdout)
-    (close-process-stream stderr)
-    (ignore-errors (isys:waitpid pid 0))))
+    (safe-close stdin)
+    (safe-close stdout)
+    (safe-close stderr)
+    (ignore-errors (isys:waitpid pid 0)))))
 
 (defconstant +WNOHANG+ 1)
 
@@ -56,11 +52,6 @@
 
 (defun process-kill (process signum)
   (isys:kill (process-pid process) signum))
-
-(defun process-input-close (process)
-  "Close input stream of the child process (send EOF code)"
-  (close-process-stream (process-input process))
-  (setf (slot-value process 'stdin) nil))
 
 (defconstant +STDIN-FILENO+ 0)
 (defconstant +STDOUT-FILENO+ 1)
@@ -128,13 +119,13 @@
                             :pid pid
                             :stdin (if pin
                                        (make-instance 'iolib.streams:dual-channel-gray-stream
-                                                      :output-fd (pipe-wr pin)))
+                                                      :fd (pipe-wr pin)))
                             :stdout (if pout
                                         (make-instance 'iolib.streams:dual-channel-gray-stream
-                                                       :input-fd (pipe-rd pout)))
+                                                       :fd (pipe-rd pout)))
                             :stderr (if perr
                                         (make-instance 'iolib.streams:dual-channel-gray-stream
-                                                       :input-fd (pipe-rd perr)))))))))))
+                                                       :fd (pipe-rd perr)))))))))))
       
 (defmacro with-child-process ((process cmd &key stdin stdout stderr union-stdout-stderr) &body body)
   `(let ((,process (create-process ,cmd

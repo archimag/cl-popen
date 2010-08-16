@@ -29,7 +29,7 @@
                (with-child-process (python "python" :stdin t :stdout t)
                  (write-line "print 'Hello Common Lisp'"
                              (process-input python))
-                 (process-input-close python)
+                 (close (process-input python))
                  (read-line (process-output python)))))
 
 (addtest (iolib.process-test)
@@ -38,7 +38,7 @@
                (with-child-process (cat "cat" :stdin t :stdout t)
                  (write-line "Hello Common Lisp"
                              (process-input cat))
-                 (process-input-close cat)
+                 (close (process-input cat))
                  (read-line (process-output cat)))))
 
 (addtest (iolib.process-test)
@@ -50,7 +50,7 @@
                    (write-line "import sys")
                    (write-line "print 'Common Lisp is good'")
                    (write-line "print >> sys.stderr, 'Python is bad'"))
-                 (process-input-close python)
+                 (close (process-input python))
                  (list (read-line (process-output python))
                        (read-line (process-error python))))))
 
@@ -62,7 +62,7 @@
                    (write-line "import sys")
                    (write-line "print 'Hello'")
                    (write-line "print >> sys.stderr, 'Hello'"))
-                 (process-input-close python)
+                 (close (process-input python))
                  (let ((*standard-input* (process-output python)))
                    (list (read-line)
                          (read-line))))))
@@ -76,7 +76,7 @@
                    (write-line "Python is bad")
                    (write-line "Common Lisp is good")
                    (write-line "imho"))
-                 (process-input-close conveyer)
+                 (close (process-input conveyer))
                  (read-line (process-output conveyer)))))
 
 
