@@ -4,7 +4,7 @@
 ;;;;
 ;;;; Author: Moskvitin Andrey <archimag@gmail.com>
 
-(defpackage :iolib.process
+(defpackage #:popen
   (:use #:cl)
   (:nicknames #:iproc)
   (:export #:process-pid
@@ -16,9 +16,13 @@
            #:process-wait
            #:process-kill
            #:create-process
-           #:with-child-process))
+           #:popen
+           #:with-popen
+           #:with-popen2
+           #:with-popen3
+           #:with-popen4))
 
-(in-package :iolib.process)
+(in-package #:popen)
 
 (defclass process ()
   ((pid :initarg :pid :reader process-pid)
@@ -125,9 +129,9 @@
                                                        :fd (pipe-rd pout)))
                             :stderr (if perr
                                         (make-instance 'iolib.streams:dual-channel-gray-stream
-                                                       :fd (pipe-rd perr)))))))))))
+                                                       :fd (pipe-rd perr)))))))))))  
       
-(defmacro with-child-process ((process cmd &key stdin stdout stderr union-stdout-stderr) &body body)
+(defmacro with-popen ((cmd process &key stdin stdout stderr union-stdout-stderr) &body body)
   `(let ((,process (create-process ,cmd
                                    :stdin ,stdin
                                    :stdout ,stdout
@@ -136,3 +140,37 @@
      (unwind-protect
           (progn ,@body)
        (process-close ,process))))
+
+(defun popen (cmd &key (buffer-size 4096))
+  (with-popen (cmd process :stdout t)
+    (let ((*print-pretty* nil)
+          (pout (process-output process))
+          (buffer (make-array buffer-size :element-type 'character)))
+      (with-output-to-string (out)
+        (loop
+           :for bytes-read = (read-sequence buffer pout)
+           :do (write-sequence buffer out :start 0 :end bytes-read)
+           :while (= bytes-read buffer-size))))))
+
+
+
+(defmacro with-popen2 ((cmd process stdin stdout) &body body)
+  `(with-popen (,cmd ,process :stdin t :stdout t)
+     (let ((,stdin (process-input ,process))
+           (,stdout (process-output ,process)))
+       ,@body)))
+
+(defmacro with-popen3 ((cmd process stdin stdout stderr) &body body)
+  `(with-popen (,cmd ,process :stdin t :stdout t :stderr t)
+     (let ((,stdin (process-input ,process))
+           (,stdout (process-output ,process))
+           (,stderr (process-error ,process)))
+       ,@body)))
+
+(defmacro with-popen4 ((cmd process stdin stdout-and-stderr) &body body)
+  `(with-popen (,cmd ,process :stdin t :union-stdout-stderr t)
+     (let ((,stdin (process-input ,process))
+           (,stdout-and-stderr (process-output ,process)))
+       ,@body)))
+
+  

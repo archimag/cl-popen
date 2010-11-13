@@ -4,30 +4,22 @@
 ;;;;
 ;;;; Author: Moskvitin Andrey <archimag@gmail.com>
 
-
-(defpackage #:iolib.process-system
-  (:use #:cl #:asdf))
-
-(in-package #:iolib.process-system)
-
-(defsystem iolib.process
-  :description "Gray streams."
+(defsystem cl-popen
   :maintainer "Moskvitin Andrey <archimag@gmail.com>"
-  :licence "MIT"
   :depends-on (#:iolib.streams)
   :components ((:file "process")))
 
-(defmethod perform ((o test-op) (c (eql (find-system 'iolib.process))))
-  (operate 'load-op 'iolib.process-test)
-  (operate 'test-op 'iolib.process-test :force t))
+(defmethod perform ((o test-op) (c (eql (find-system 'cl-popen))))
+  (operate 'load-op 'cl-popen-test)
+  (operate 'test-op 'cl-popen-test :force t))
 
-(defsystem iolib.process-test
-  :depends-on (#:iolib.process #:lift)
+(defsystem cl-popen-test
+  :depends-on (#:cl-popen #:lift)
   :components ((:file "t")))
 
-(defmethod perform ((o test-op) (c (eql (find-system 'iolib.process-test))))
-  (operate 'load-op 'iolib.process-test )
-  (let* ((test-results (funcall (read-from-string "iolib.process.test:run-iolib.process-tests")))
+(defmethod perform ((o test-op) (c (eql (find-system 'cl-popen-test))))
+  (operate 'load-op 'cl-popen-test )
+  (let* ((test-results (funcall (read-from-string "cl-popen.test:run-cl-popen-tests")))
          (errors (funcall (read-from-string "lift:errors")  test-results))
          (failures (funcall (read-from-string "lift:failures") test-results)))
     (if (or errors failures)

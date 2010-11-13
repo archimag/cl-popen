@@ -1,82 +1,73 @@
 ;;;; t.lisp
 ;;;;
-;;;; This file is part of the iolib.process library, released under MIT licence.
+;;;; This file is part of the cl-popen library, released under MIT licence.
 ;;;;
 ;;;; Author: Moskvitin Andrey <archimag@gmail.com>
 
+(defpackage #:popen.test
+  (:use #:cl #:lift #:popen)
+  (:export #:run-popen-tests))
 
-(defpackage #:iolib.process.test
-  (:use #:cl #:lift #:iolib.process)
-  (:export #:run-iolib.process-tests))
+(in-package :popen.test)
 
-(in-package :iolib.process.test)
-
-(defun run-iolib.process-tests ()
-  (run-tests :suite 'iolib.process-test
+(defun run-popen-tests ()
+  (run-tests :suite 'popen-test
              :report-pathname nil))
 
-(deftestsuite iolib.process-test () ())
+(deftestsuite popen-test () ())
 
-(addtest (iolib.process-test)
+(addtest (popen-test)
   simple1
   (ensure-same "Hello world"
-               (with-child-process (python "python -c \"print 'Hello world'\"" :stdout t)
+               (with-popen ("python -c \"print 'Hello world'\"" python :stdout t)
                  (read-line (process-output python)))))
 
-(addtest (iolib.process-test)
+(addtest (popen-test)
   popen2-1
   (ensure-same "Hello Common Lisp"
-               (with-child-process (python "python" :stdin t :stdout t)
-                 (write-line "print 'Hello Common Lisp'"
-                             (process-input python))
-                 (close (process-input python))
-                 (read-line (process-output python)))))
+               (with-popen2 ("python" python pin pout)
+                 (write-line "print 'Hello Common Lisp'" pin)
+                 (close pin)
+                 (read-line pout))))
 
-(addtest (iolib.process-test)
+(addtest (popen-test)
   popen2-2
   (ensure-same "Hello Common Lisp"
-               (with-child-process (cat "cat" :stdin t :stdout t)
-                 (write-line "Hello Common Lisp"
-                             (process-input cat))
-                 (close (process-input cat))
-                 (read-line (process-output cat)))))
+               (with-popen2 ("cat" cat pin pout)
+                 (write-line "Hello Common Lisp" pin)
+                 (close pin)
+                 (read-line pout))))
 
-(addtest (iolib.process-test)
+(addtest (popen-test)
   popen3
   (ensure-same '("Common Lisp is good"
                  "Python is bad")
-               (with-child-process (python "python" :stdin t :stdout t :stderr t)
-                 (let ((*standard-output* (process-input python)))
-                   (write-line "import sys")
-                   (write-line "print 'Common Lisp is good'")
-                   (write-line "print >> sys.stderr, 'Python is bad'"))
-                 (close (process-input python))
-                 (list (read-line (process-output python))
-                       (read-line (process-error python))))))
+               (with-popen3 ("python" python pin pout perr)
+                 (write-line "import sys" pin)
+                 (write-line "print 'Common Lisp is good'" pin)
+                 (write-line "print >> sys.stderr, 'Python is bad'" pin)
+                 (close pin)
+                 (list (read-line pout)
+                       (read-line perr)))))
 
-(addtest (iolib.process-test)
+(addtest (popen-test)
   popen4
   (ensure-same '("Hello" "Hello")
-               (with-child-process (python "python" :stdin t :union-stdout-stderr t)
-                 (let ((*standard-output* (process-input python)))
-                   (write-line "import sys")
-                   (write-line "print 'Hello'")
-                   (write-line "print >> sys.stderr, 'Hello'"))
-                 (close (process-input python))
-                 (let ((*standard-input* (process-output python)))
-                   (list (read-line)
-                         (read-line))))))
+               (with-popen4 ("python" python pin pout)
+                 (write-line "import sys" pin)
+                 (write-line "print 'Hello'" pin)
+                 (write-line "print >> sys.stderr, 'Hello'" pin)
+                 (close pin)
+                 (list (read-line pout)
+                       (read-line pout)))))
 
-(addtest (iolib.process-test)
+(addtest (popen-test)
   conveyer
   (ensure-same "Common Lisp is good"
-               (with-child-process (conveyer "cat | grep good" :stdin t :stdout t)
-                 (let ((*standard-output* (process-input conveyer)))
-                   (write-line "Haskell is bad")
-                   (write-line "Python is bad")
-                   (write-line "Common Lisp is good")
-                   (write-line "imho"))
-                 (close (process-input conveyer))
-                 (read-line (process-output conveyer)))))
-
-
+               (with-popen2 ("cat | grep good" conveyer pin pout)
+                 (write-line "Haskell is bad" pin)
+                 (write-line "Python is bad" pin)
+                 (write-line "Common Lisp is good" pin)
+                 (write-line "imho" pin)
+                 (close pin)
+                 (read-line pout))))
