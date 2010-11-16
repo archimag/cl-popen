@@ -1,6 +1,7 @@
 ;;;; t.lisp
 ;;;;
-;;;; This file is part of the cl-popen library, released under MIT licence.
+;;;; This file is part of the cl-popen library, released under Lisp-LGPL.
+;;;; See file COPYING for details.
 ;;;;
 ;;;; Author: Moskvitin Andrey <archimag@gmail.com>
 

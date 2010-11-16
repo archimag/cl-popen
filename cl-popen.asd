@@ -1,6 +1,7 @@
-;;;; iolib.process.asd
+;;;; cl-popen.asd
 ;;;;
-;;;; This file is part of the iolib.process library, released under MIT licence.
+;;;; This file is part of the cl-popen library, released under Lisp-LGPL.
+;;;; See file COPYING for details.
 ;;;;
 ;;;; Author: Moskvitin Andrey <archimag@gmail.com>
 
