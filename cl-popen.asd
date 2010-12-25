@@ -20,7 +20,7 @@
 
 (defmethod perform ((o test-op) (c (eql (find-system 'cl-popen-test))))
   (operate 'load-op 'cl-popen-test )
-  (let* ((test-results (funcall (read-from-string "cl-popen.test:run-cl-popen-tests")))
+  (let* ((test-results (funcall (read-from-string "popen.test:run-popen-tests")))
          (errors (funcall (read-from-string "lift:errors")  test-results))
          (failures (funcall (read-from-string "lift:failures") test-results)))
     (if (or errors failures)
