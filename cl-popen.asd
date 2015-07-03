@@ -7,7 +7,7 @@
 
 (defsystem cl-popen
   :maintainer "Moskvitin Andrey <archimag@gmail.com>"
-  :depends-on (#:iolib.streams)
+  :depends-on (#:iolib/streams)
   :components ((:file "process")))
 
 (defmethod perform ((o test-op) (c (eql (find-system 'cl-popen))))
